@@ -18,4 +18,6 @@ Auth::routes();
 Route::get('/', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
 Route::get('/timesheet', [App\Http\Controllers\TimesheetController::class, 'index'])->name('timsheet.index');
 Route::get('/timesheet/{id}', [App\Http\Controllers\TimesheetController::class, 'show'])->name('timsheet.show');
-Route::get('/timesheet-detail',[App\Http\Controllers\TimesheetController::class, 'showByDate'] )->name('timsheet.show.by.date');
+Route::get('/timesheet-detail', [App\Http\Controllers\TimesheetController::class, 'showByDate'])->name('timsheet.show.by.date');
+Route::post('/timesheet', [App\Http\Controllers\TimesheetController::class, 'store'])->name('timsheet.create');
+Route::put('/timesheet/{id}', [App\Http\Controllers\TimesheetController::class, 'update'])->name('timesheet.update');

@@ -5,9 +5,12 @@ namespace App\Http\Controllers;
 use App\Models\Timesheet;
 use App\Http\Requests\StoreTimesheetRequest;
 use App\Http\Requests\UpdateTimesheetRequest;
+use App\Models\Task;
+use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class TimesheetController extends Controller
 {
@@ -29,9 +32,9 @@ class TimesheetController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function create()
+    public function create($id)
     {
-        //
+        
     }
 
     /**
@@ -42,7 +45,32 @@ class TimesheetController extends Controller
      */
     public function store(StoreTimesheetRequest $request)
     {
-        //
+        $params = $request->only('tasks', 'difficulties', 'todo', 'date');
+        $user = Auth::user();
+        if (!Auth::user()->can('create')) {
+            abort(403);
+        }
+
+        DB::beginTransaction();
+        try {
+            $timesheet = Timesheet::create(['difficulties' => $params['difficulties'], 'todo' => $params['todo'], 'user_id' => $user->id, 'date' => $params['date']]);
+
+            $tasks = [];
+            foreach ($params['tasks'] as $item) {
+                if (isset($item['title']) || isset($item['content']) || isset($item['hours_used'])) {
+                    $item['user_id'] = $user->id;
+                    $item['timesheet_id'] = $timesheet->id;
+                    $tasks[] = $item;
+                }
+            }
+            count($tasks) && Task::insert($tasks);
+            DB::commit();
+            return $this->successResponse('Timesheets created', 'Success');
+        } catch (Exception $e) {
+            DB::rollBack();
+
+            throw new Exception($e->getMessage());
+        }
     }
 
     /**
@@ -88,9 +116,39 @@ class TimesheetController extends Controller
      * @param  \App\Models\Timesheet  $timesheet
      * @return \Illuminate\Http\Response
      */
-    public function update(UpdateTimesheetRequest $request, Timesheet $timesheet)
+    public function update(UpdateTimesheetRequest $request, int $id)
     {
-        //
+        $user = Auth::user();
+        $timesheet = Timesheet::findOrFail($id);
+        if (!$user->can('update', $timesheet)) {
+            abort(403);
+        }
+        $params = $request->only('tasks', 'difficulties', 'todo', 'date');
+
+        DB::beginTransaction();
+        try {
+            $timesheet->difficulties = $params['difficulties'];
+            $timesheet->todo = $params['todo'];
+            $timesheet->save();
+
+            Task::where('timesheet_id', $timesheet->id)->delete();
+
+            $tasks = [];
+            foreach ($params['tasks'] as $item) {
+                if (isset($item['title']) || isset($item['content']) || isset($item['hours_used'])) {
+                    $item['user_id'] = $user->id;
+                    $item['timesheet_id'] = $timesheet->id;
+                    $tasks[] = $item;
+                }
+            }
+            count($tasks) && Task::insert($tasks);
+            DB::commit();
+            return $this->successResponse('Timesheets updated', 'Success');
+        } catch (Exception $e) {
+            DB::rollBack();
+
+            throw new Exception($e->getMessage());
+        }
     }
 
     /**

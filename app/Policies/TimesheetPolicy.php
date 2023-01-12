@@ -41,7 +41,7 @@ class TimesheetPolicy
      */
     public function create(User $user)
     {
-        //
+        return $user->role === 1 || $user->id === $timesheet->user_id;
     }
 
     /**
@@ -53,7 +53,7 @@ class TimesheetPolicy
      */
     public function update(User $user, Timesheet $timesheet)
     {
-        //
+        return $user->role === 1 || $user->id === $timesheet->user_id;
     }
 
     /**

@@ -1,5 +1,13 @@
 @extends('layouts.app')
 
+<style>
+    .accordion-item input {
+        border: none;
+        background: none;
+        width: 100%;
+        outline: none;
+    }
+</style>
 @section('content')
 <div class="container">
     <div class="response"></div>
@@ -13,26 +21,62 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="accordion" id="accordionExample">
+                    <div id="report-view" class="accordion" id="accordionExample">
+                        <div class="tasks mb-4">
+                            <h1>Tasks</h1>
                             @foreach ($timesheet['tasks'] as $tindex => $task)
                             <div class="accordion-item">
                                 <h2 class="accordion-header" id="heading{{{$task['id']}}}">
-                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{{$task['id']}}}" aria-expanded="true" aria-controls="collapse{{{$task['id']}}}">
-                                    {{ $task['title'] }}
-                                </button>
+                                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{{$task['id']}}}" aria-expanded="true" aria-controls="collapse{{{$task['id']}}}">
+                                        {{ $task['title'] }} &nbsp
+                                        <strong> ({{ $task['hours_used'] }} hours)</strong>
+                                    </button>
                                 </h2>
                                 <div id="collapse{{{$task['id']}}}" class="accordion-collapse collapse" aria-labelledby="heading{{{$task['id']}}}" data-bs-parent="#accordionExample">
-                                <div class="accordion-body">
-                                    {{ $task['content'] }}
-                                </div>
+                                    <div class="accordion-body">
+                                        {{ $task['content'] }}
+                                    </div>
+                                    <!-- <input type="text" class="accordion-body" value="{{ $task['content'] }}"> -->
                                 </div>
                             </div>
                             @endforeach
+                        </div>
+                        <div class="difficulties mb-4">
+                            <h1>Difficulties</h1>
+                            <textarea disabled value="{{{ $timesheet['difficulties'] }}}" style="width: 100%; resize: none" class="px-2 py-2"></textarea>
+                        </div>
+                        <div class="todo">
+                            <h1>Todo stuff</h1>
+                            <textarea disabled value="{{{ $timesheet['todo'] }}}" style="width: 100%; resize: none" class="px-2 py-2"></textarea>
+                        </div>
+                    </div>
+                    <div id="report-edit" class="accordion d-none">
+                        <div class="mb-4">
+                            <h1>Tasks</h1>
+                            @foreach ($timesheet['tasks'] as $tindex => $task)
+                            <div class="edit-task mb-4">
+                                <input type="text" class="edit-title" value="{{ $task['title'] }}" placeholder="Task title">
+                                <input type="text" class="edit-content" value="{{ $task['content'] }}" placeholder="Task content">
+                                <input type="number" class="edit-hour" value="{{ $task['hours_used'] }}" placeholder="Hours used">
+                            </div>
+                            @endforeach
+                            <div class="d-flex justify-content-end"><button type="button" class="btn btn-secondary" id="add-task-btn">Add task</button></div>
+                        </div>
+                        <div class="difficulties mb-4">
+                            <h1>Difficulties</h1>
+                            <textarea value="{{{ $timesheet['difficulties'] }}}" style="width: 100%; resize: none" class="edit-difficulties px-2 py-2"></textarea>
+                        </div>
+                        <div class="todo">
+                            <h1>Todo stuff</h1>
+                            <textarea value="{{{ $timesheet['todo'] }}}" style="width: 100%; resize: none" class="edit-todo px-2 py-2"></textarea>
+                        </div>
                     </div>
                 </div>
+                
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="button" class="btn btn-primary">Detail</button>
+                    <button id="btn-detail" type="button" class="btn btn-primary">Edit</button>
+                    <button id="btn-save" type="button" class="btn btn-primary d-none">Save</button>
                 </div>
                 </div>
             </div>
@@ -48,11 +92,33 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <h2>Empty</h2>
+                    <h2 id="report-empty">Empty</h2>
+                    <div id="report-create" class="accordion d-none">
+                        <div class="mb-4">
+                            <h1>Tasks</h1>
+                            <div id="new-task-container">
+                                <div class="new-task mb-4">
+                                    <input type="text" class="new-title" placeholder="Task title">
+                                    <input type="text" class="new-content" placeholder="Task content">
+                                    <input type="number" class="new-hour" placeholder="Hours used">
+                                </div>
+                            </div>
+                            <div class="d-flex justify-content-end"><button type="button" class="btn btn-secondary" id="new-task-btn">Add task</button></div>
+                        </div>
+                        <div class="difficulties mb-4">
+                            <h1>Difficulties</h1>
+                            <textarea placeholder="difficulties" style="width: 100%; resize: none" class="new-difficulties px-2 py-2"></textarea>
+                        </div>
+                        <div class="todo">
+                            <h1>Todo stuff</h1>
+                            <textarea placeholder="todo" style="width: 100%; resize: none" class="new-todo px-2 py-2"></textarea>
+                        </div>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="button" class="btn btn-primary">Add task</button>
+                    <button type="button" id="btn-add-timesheet" class="btn btn-primary">Add timesheet</button>
+                    <button type="button" id="btn-save-timesheet" class="btn btn-primary d-none">Save timesheet</button>
                 </div>
                 </div>
             </div>
@@ -68,18 +134,101 @@
         let SITEURL = "{{url('/')}}";
         let list = {!! str_replace("'", "\'", json_encode($timesheets)) !!};
         let events = [];
+        let shown_date = null;
+        let current_id = null;
         list.forEach(item => {
-            events.push({
+            !!item.check_in && events.push({
                 id: `In ${item.id}`,
                 title: `Check in: ${item.check_in}`,
                 start: item.date,
             })
-            events.push({
+            !!item.check_out && events.push({
                 id: `Out ${item.id}`,
                 title: `Check out: ${item.check_in}`,
                 start: item.date,
                 backgroundColor: '#198754',
             })
+            
+            $(`#timesheetModal${item.date} #btn-detail`).on('click', function() {
+                triggerContent(item.date, true)
+            })
+
+            $(`#timesheetModal${item.date} #btn-save`).on('click', function() {
+                triggerContent(item.date, false)
+                let tasks = [];
+                $(`#timesheetModal${item.date} .edit-task`).each(function() {
+                    tasks.push({
+                        title: $(this).children('.edit-title').first().val(),
+                        content: $(this).children('.edit-content').first().val(),
+                        hours_used: $(this).children('.edit-hour').first().val(),
+                    })
+                })
+                let difficulties = $('.edit-difficulties').val()
+                let todo = $('.edit-todo').val()
+
+                $.ajax({
+                    url: `/timesheet/${current_id}`,
+                    data: {
+                        'date': shown_date,
+                        'tasks': tasks,
+                        'difficulties': difficulties,
+                        'todo': todo,
+                    },
+                    type: 'PUT',
+                    success: function (data) {
+                        alert(data.data);
+                        location.reload();
+                    },
+                    error: function(error) {
+                        alert('error');
+                    }
+                })
+            })
+        })
+        $(`#btn-add-timesheet`).on('click', function() {
+            $(`#report-empty`).addClass('d-none');
+            $(`#report-create`).removeClass('d-none');
+            $(`#btn-add-timesheet`).addClass('d-none');
+            $(`#btn-save-timesheet`).removeClass('d-none');
+        })
+        $(`#btn-save-timesheet`).on('click', function() {
+            let tasks = [];
+            $('.new-task').each(function() {
+                tasks.push({
+                    title: $(this).children('.new-title').first().val(),
+                    content: $(this).children('.new-content').first().val(),
+                    hours_used: $(this).children('.new-hour').first().val(),
+                })
+            })
+            let difficulties = $('.new-difficulties').val()
+            let todo = $('.new-todo').val()
+
+            $.ajax({
+                url: `/timesheet`,
+                data: {
+                    'date': shown_date,
+                    'tasks': tasks,
+                    'difficulties': difficulties,
+                    'todo': todo,
+                },
+                type: 'POST',
+                success: function (data) {
+                    alert(data.data);
+                    location.reload();
+                },
+                error: function(error) {
+                    alert('error');
+                }
+            })
+        })
+        $('#new-task-btn').on('click', function() {
+            let container = $('#new-task-container');
+
+            let new_task = $('.new-task', container).eq(0).clone();
+            Array.from(new_task.children('input')).forEach(item => {
+                item.value = null;
+            })
+            new_task.appendTo(container);
         })
         $.ajaxSetup({
             headers: {
@@ -102,16 +251,18 @@
             selectable: true,
             selectHelper: true,
             select: function (start, end, allDay) {
-                let dateId = $.fullCalendar.formatDate(start, "YYYY-MM-DD");
+                shown_date = $.fullCalendar.formatDate(start, "YYYY-MM-DD");
                 let timesheet = null;
                 $.ajax({
                     url: `/timesheet-detail`,
-                    data: {'date': dateId},
+                    data: {'date': shown_date},
                     type: 'GET',
                     success: function (data) {
                         timesheet = data.data;
+                        current_id = timesheet.id;
                         if(Object.keys(timesheet).length) {
                             $(`#modalToggle${timesheet.date}`).click();
+                            triggerContent(timesheet.date, false)
                             $(`#sheetDate${timesheet.date}`).text($.fullCalendar.formatDate(start, "Y MM DD"));
                         } else {
                             $(`#sheetDate`).text($.fullCalendar.formatDate(start, "Y MM DD"));
@@ -177,6 +328,21 @@
             // }
         });
     })
+
+    // flag = true is edit, flag = false is save
+    function triggerContent(date, flag) {
+        if (flag) {
+            $(`#timesheetModal${date} #report-view`).addClass('d-none');
+            $(`#timesheetModal${date} #report-edit`).removeClass('d-none');
+            $(`#timesheetModal${date} #btn-detail`).addClass('d-none');
+            $(`#timesheetModal${date} #btn-save`).removeClass('d-none');
+        } else {
+            $(`#timesheetModal${date} #report-view`).removeClass('d-none');
+            $(`#timesheetModal${date} #report-edit`).addClass('d-none');
+            $(`#timesheetModal${date} #btn-detail`).removeClass('d-none');
+            $(`#timesheetModal${date} #btn-save`).addClass('d-none');
+        }
+    }
 </script>
 @endsection
 
