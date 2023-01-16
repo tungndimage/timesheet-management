@@ -6,6 +6,7 @@ use App\Models\Timesheet;
 use App\Http\Requests\StoreTimesheetRequest;
 use App\Http\Requests\UpdateTimesheetRequest;
 use App\Models\Task;
+use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -149,6 +150,25 @@ class TimesheetController extends Controller
 
             throw new Exception($e->getMessage());
         }
+    }
+
+    public function checkIn()
+    {
+        $user = Auth::user();
+        $timesheet = Timesheet::updateOrCreate(['user_id' => $user->id, 'date' => Carbon::now()->toDateString()], ['check_in' => Carbon::now()->toTimeString()]);
+        return $this->successResponse('Checked in time: ' . $timesheet->date . ' ' . $timesheet->check_in, 'Success');
+    }
+
+    public function checkOut() {
+        $user = Auth::user();
+        $timesheet = Timesheet::where('user_id', $user->id)->where('date', Carbon::now()->toDateString())->first();
+        if (!$timesheet || !$timesheet->check_in) {
+            return $this->errorResponse('You have not checked in yet!', 'Failed to check out', 400);
+        }
+
+        $timesheet->check_out = Carbon::now()->toTimeString();
+        $timesheet->save();
+        return $this->successResponse('Checked out time: ' . $timesheet->date . ' ' . $timesheet->check_in, 'Success');
     }
 
     /**

@@ -84,3 +84,10 @@
     @yield('scripts')
 </body>
 </html>
+<script type="module">
+$.ajaxSetup({
+    headers: {
+        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+    }
+});
+</script>

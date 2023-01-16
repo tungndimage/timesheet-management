@@ -50,17 +50,29 @@
                             <textarea disabled value="{{{ $timesheet['todo'] }}}" style="width: 100%; resize: none" class="px-2 py-2"></textarea>
                         </div>
                     </div>
-                    <div id="report-edit" class="accordion d-none">
+                    <div id="report-edit" class="accordion d-none report-edit">
                         <div class="mb-4">
                             <h1>Tasks</h1>
                             @foreach ($timesheet['tasks'] as $tindex => $task)
-                            <div class="edit-task mb-4">
-                                <input type="text" class="edit-title" value="{{ $task['title'] }}" placeholder="Task title">
-                                <input type="text" class="edit-content" value="{{ $task['content'] }}" placeholder="Task content">
-                                <input type="number" class="edit-hour" value="{{ $task['hours_used'] }}" placeholder="Hours used">
+                            <div class="task-container">
+                                <div class="edit-task mb-4">
+                                    <input type="text" class="edit-title" value="{{ $task['title'] }}" placeholder="Task title">
+                                    <input type="text" class="edit-content" value="{{ $task['content'] }}" placeholder="Task content">
+                                    <input type="number" class="edit-hour" value="{{ $task['hours_used'] }}" placeholder="Hours used">
+                                </div>
                             </div>
                             @endforeach
-                            <div class="d-flex justify-content-end"><button type="button" class="btn btn-secondary" id="add-task-btn">Add task</button></div>
+                            @if (!count($timesheet['tasks']))
+                            <div class="task-container">
+                                <div class="edit-task mb-4">
+                                    <input type="text" class="edit-title" placeholder="Task title">
+                                    <input type="text" class="edit-content" placeholder="Task content">
+                                    <input type="number" class="edit-hour" placeholder="Hours used">
+                                </div>
+                            </div>
+                            @endif
+
+                            <div class="d-flex justify-content-end"><button type="button" class="btn btn-secondary add-task-btn" id="add-task-btn">Add task</button></div>
                         </div>
                         <div class="difficulties mb-4">
                             <h1>Difficulties</h1>
@@ -144,7 +156,7 @@
             })
             !!item.check_out && events.push({
                 id: `Out ${item.id}`,
-                title: `Check out: ${item.check_in}`,
+                title: `Check out: ${item.check_out}`,
                 start: item.date,
                 backgroundColor: '#198754',
             })
@@ -177,7 +189,7 @@
                     type: 'PUT',
                     success: function (data) {
                         alert(data.data);
-                        location.reload();
+                        // location.reload();
                     },
                     error: function(error) {
                         alert('error');
@@ -214,13 +226,14 @@
                 type: 'POST',
                 success: function (data) {
                     alert(data.data);
-                    location.reload();
+                    // location.reload();
                 },
                 error: function(error) {
                     alert('error');
                 }
             })
         })
+
         $('#new-task-btn').on('click', function() {
             let container = $('#new-task-container');
 
@@ -230,11 +243,21 @@
             })
             new_task.appendTo(container);
         })
-        $.ajaxSetup({
-            headers: {
-                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-            }
-        });
+
+        $(`.report-edit`).each(function() {
+            let addTaskBtn = $(this).find('.add-task-btn')
+            let self = $(this)
+            addTaskBtn.on('click', function() {
+                let container = self.find('.task-container');
+
+                let new_task = $('.edit-task', container).eq(0).clone();
+                Array.from(new_task.children('input')).forEach(item => {
+                    item.value = null;
+                })
+                new_task.appendTo(container);
+            })
+        })
+
 
         let calendar = $('#calendar').fullCalendar({
             editable: true,
@@ -297,19 +320,18 @@
                 // }
                 // calendar.fullCalendar('unselect');
             },
-
-            eventDrop: function (event, delta) {
-                let start = $.fullCalendar.formatDate(event.start, "Y-MM-DD HH:mm:ss");
-                let end = $.fullCalendar.formatDate(event.end, "Y-MM-DD HH:mm:ss");
-                $.ajax({
-                    url: SITEURL + '/fullcalendar/update',
-                    data: {'title': event.title, 'start': start, 'end': end, 'id': event.id},
-                    type: "POST",
-                    success: function (response) {
-                        displayMessage("Updated Successfully");
-                    }
-                });
-            },
+            // eventDrop: function (event, delta) {
+            //     let start = $.fullCalendar.formatDate(event.start, "Y-MM-DD HH:mm:ss");
+            //     let end = $.fullCalendar.formatDate(event.end, "Y-MM-DD HH:mm:ss");
+            //     $.ajax({
+            //         url: SITEURL + '/fullcalendar/update',
+            //         data: {'title': event.title, 'start': start, 'end': end, 'id': event.id},
+            //         type: "POST",
+            //         success: function (response) {
+            //             displayMessage("Updated Successfully");
+            //         }
+            //     });
+            // },
             // eventClick: function (event) {
             //     let deleteMsg = confirm("Do you really want to delete?");
             //     if (deleteMsg) {

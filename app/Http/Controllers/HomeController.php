@@ -2,7 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Timesheet;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class HomeController extends Controller
 {
@@ -23,6 +26,12 @@ class HomeController extends Controller
      */
     public function index()
     {
-        return view('home');
+        $user = Auth::user();
+        $timesheet = Timesheet::where('user_id', $user->id)->where('date', Carbon::now()->toDateString())->first();
+        $checkData = [
+            'check_in' => $timesheet?->check_in,
+            'check_out' => $timesheet?->check_out,
+        ];
+        return view('home', compact('checkData'));
     }
 }
