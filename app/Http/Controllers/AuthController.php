@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\RegisterRequest;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -24,9 +25,9 @@ class AuthController extends Controller
             'password' => ['required'],
         ]);
 
-        if (Auth::guard()->attempt(['email' => $request->email, 'password' => $request->password], $request->remember)) {
+        if (Auth::attempt(['email' => $request->email, 'password' => $request->password], $request->remember)) {
             $request->session()->regenerate();
-            return redirect('/');
+            return redirect(route('home'));
         }
 
         return back()->withErrors([
@@ -38,35 +39,27 @@ class AuthController extends Controller
         return view('auth.register');
     }
 
-    public function register(Request $request) {
-        $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'age' => ['integer'],
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
-        ]);
-        $params = $request->all();
-
+    public function register(RegisterRequest $request) {
         $user = User::create([
-            'name' => $params['name'],
-            'age' => $params['age'],
-            'email' => $params['email'],
-            'password' => Hash::make($params['password']),
+            'name' => $request?->name,
+            'age' => $request?->age,
+            'email' => $request?->email,
+            'password' => Hash::make($request?->email),
             'role' => User::ROLE_USER,
         ]);
         if ($user) {
-            if (Auth::guard()->attempt(['email' => $request->email, 'password' => $request->password])) {
+            if (Auth::login($user)) {
                 $request->session()->regenerate();
             }
         }
-        return redirect('/');
+        return redirect(route('home'));
     }
 
     public function logout(Request $request) {
-        Auth::guard()->logout();
+        Auth::logout();
 
         $request->session()->invalidate();
 
-        return redirect('/');
+        return redirect(route('show.login'));
     }
 }
