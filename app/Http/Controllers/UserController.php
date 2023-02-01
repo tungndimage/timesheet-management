@@ -3,8 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
-use App\Http\Requests\StoreUserRequest;
 use App\Http\Requests\UpdateUserRequest;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class UserController extends Controller
 {
@@ -15,7 +16,7 @@ class UserController extends Controller
      */
     public function index()
     {
-        return view('profile');
+        //
     }
 
     /**
@@ -29,17 +30,6 @@ class UserController extends Controller
     }
 
     /**
-     * Store a newly created resource in storage.
-     *
-     * @param  \App\Http\Requests\StoreUserRequest  $request
-     * @return \Illuminate\Http\Response
-     */
-    public function store(StoreUserRequest $request)
-    {
-        //
-    }
-
-    /**
      * Display the specified resource.
      *
      * @param  \App\Models\User  $user
@@ -47,7 +37,7 @@ class UserController extends Controller
      */
     public function show(User $user)
     {
-        //
+        return view('profile', compact('user'));
     }
 
     /**
@@ -68,9 +58,24 @@ class UserController extends Controller
      * @param  \App\Models\User  $user
      * @return \Illuminate\Http\Response
      */
-    public function update(UpdateUserRequest $request, User $user)
+    public function update(UpdateUserRequest $request, User $model)
     {
-        //
+        $user = Auth::user();
+        if (!$user->can('update', $model)) {
+            abort(403);
+        }
+
+        DB::beginTransaction();
+        try {
+            $model->fill($request->all());
+            $model->save();
+
+            DB::commit();
+            return $this->successResponse('Profile updated', 'Success');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return $this->errorResponse($e->getMessage(), 'Cannot update', 400);
+        }
     }
 
     /**

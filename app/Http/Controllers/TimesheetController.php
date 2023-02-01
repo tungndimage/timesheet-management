@@ -48,9 +48,6 @@ class TimesheetController extends Controller
     {
         $params = $request->only('tasks', 'difficulties', 'todo', 'date');
         $user = Auth::user();
-        if (!Auth::user()->can('create')) {
-            abort(403);
-        }
 
         DB::beginTransaction();
         try {

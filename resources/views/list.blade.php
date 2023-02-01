@@ -189,7 +189,7 @@
                     type: 'PUT',
                     success: function (data) {
                         alert(data.data);
-                        // location.reload();
+                        location.reload();
                     },
                     error: function(error) {
                         alert('error');
@@ -226,7 +226,7 @@
                 type: 'POST',
                 success: function (data) {
                     alert(data.data);
-                    // location.reload();
+                    location.reload();
                 },
                 error: function(error) {
                     alert('error');
