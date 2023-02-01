@@ -25,7 +25,7 @@ class AuthController extends Controller
             'password' => ['required'],
         ]);
 
-        if (Auth::attempt(['email' => $request->email, 'password' => $request->password], $request->remember)) {
+        if (Auth::guard('user')->attempt(['email' => $request->email, 'password' => $request->password, 'role' => User::ROLE_USER], $request->remember)) {
             $request->session()->regenerate();
             return redirect(route('home'));
         }
@@ -48,7 +48,7 @@ class AuthController extends Controller
             'role' => User::ROLE_USER,
         ]);
         if ($user) {
-            if (Auth::login($user)) {
+            if (Auth::guard('user')->login($user)) {
                 $request->session()->regenerate();
             }
         }
@@ -56,7 +56,7 @@ class AuthController extends Controller
     }
 
     public function logout(Request $request) {
-        Auth::logout();
+        Auth::guard('user')->logout();
 
         $request->session()->invalidate();
 
