@@ -22,6 +22,8 @@ Route::post('/register', [App\Http\Controllers\AuthController::class, 'register'
 Route::post('/logout', [App\Http\Controllers\AuthController::class, 'logout'])->name('logout');
 Route::get('/profile/{user?}', [App\Http\Controllers\UserController::class, 'show'])->name('profile.show');
 Route::put('/profile/{user?}', [App\Http\Controllers\UserController::class, 'update'])->name('profile.update');
+Route::get('/forgot-password', [App\Http\Controllers\AuthController::class, 'showResetForm'])->name('show.form.reset');
+Route::post('/forgot-password', [App\Http\Controllers\AuthController::class, 'sendResetMail'])->name('send.mail.reset');
 
 Route::prefix('admin')->group(function() {
     Route::get('/login', [App\Http\Controllers\Admin\AuthController::class, 'showLogin'])->name('admin.show.login');

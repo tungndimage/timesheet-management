@@ -43,7 +43,10 @@ class ResetPassword extends Mailable
     public function content()
     {
         return new Content(
-            text: 'Here is your reset link: ' . $this->resetUrl,
+            view: 'auth.passwords.reset-mail',
+            with: [
+                'msg' => 'Here is your reset link: ' . $this->resetUrl,
+            ],
         );
     }
 

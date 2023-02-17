@@ -68,7 +68,7 @@ class AuthController extends Controller
     }
 
     public function showResetForm() {
-        return view('passwords.email');
+        return view('auth.passwords.email');
     }
 
     public function sendResetMail(Request $request) {
@@ -76,15 +76,15 @@ class AuthController extends Controller
             'email' => ['required', 'email', 'max:255'],
         ]);
 
-        if (!User::where('email', $request->email)->exist()) {
+        if (!User::where('email', $request->email)->first()) {
             return back()->withErrors([
                 'email' => 'This email has not been registered',
             ]);
         }
         $token = Str::random(32);
-        PasswordResets::create(['email' => $request->email, 'token' => $token]);
+        PasswordResets::insert(['email' => $request->email, 'token' => $token]);
 
-        Mail::to($request->email)->send(new ResetPassword(env('APP_NAME', 'localhost') . '?token=' . $token));
+        Mail::to($request->email)->send(new ResetPassword(env('APP_NAME', 'localhost') . '/reset-password' . '?token=' . $token));
         return $this->successResponse('Email sent', 'Success');
     }
 }
