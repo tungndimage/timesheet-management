@@ -23,7 +23,7 @@ class TimesheetController extends Controller
     public function index()
     {
         $user = Auth::user();
-        $timesheets = Timesheet::with('tasks')->where('user_id', $user->id)->get()->toArray();
+        $timesheets = $user->timesheets()->with('tasks')->get()->toArray();
 
         return view('list', compact('timesheets'));
     }
@@ -51,7 +51,7 @@ class TimesheetController extends Controller
 
         DB::beginTransaction();
         try {
-            $timesheet = Timesheet::create(['difficulties' => $params['difficulties'], 'todo' => $params['todo'], 'user_id' => $user->id, 'date' => $params['date']]);
+            $timesheet = $user->timesheets()->create(['difficulties' => $params['difficulties'], 'todo' => $params['todo'], 'date' => $params['date']]);
 
             $tasks = [];
             foreach ($params['tasks'] as $item) {

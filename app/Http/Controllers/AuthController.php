@@ -3,10 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\RegisterRequest;
+use App\Mail\ResetPassword;
+use App\Models\PasswordResets;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 
 class AuthController extends Controller
 {
@@ -61,5 +65,26 @@ class AuthController extends Controller
         $request->session()->invalidate();
 
         return redirect(route('show.login'));
+    }
+
+    public function showResetForm() {
+        return view('passwords.email');
+    }
+
+    public function sendResetMail(Request $request) {
+        $request->validate([
+            'email' => ['required', 'email', 'max:255'],
+        ]);
+
+        if (!User::where('email', $request->email)->exist()) {
+            return back()->withErrors([
+                'email' => 'This email has not been registered',
+            ]);
+        }
+        $token = Str::random(32);
+        PasswordResets::create(['email' => $request->email, 'token' => $token]);
+
+        Mail::to($request->email)->send(new ResetPassword(env('APP_NAME', 'localhost') . '?token=' . $token));
+        return $this->successResponse('Email sent', 'Success');
     }
 }
